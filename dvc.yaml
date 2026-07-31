@@ -1,0 +1,77 @@
+# dvc.yaml - MAI203 Amazon Fine Food Reviews NLP Pipeline
+# Run full pipeline: dvc repro
+# Run single stage:  dvc repro <stage_name>
+# Always run dvc push after dvc repro
+
+stages:
+
+  prepare:
+    cmd: python src/prepare.py
+    deps:
+      - src/prepare.py
+      - data/raw/Reviews.csv
+    params:
+      - params.yaml:
+          - data.sample_size
+          - data.random_state
+          - data.score_positive_min
+          - data.score_negative_max
+          - preprocessing.max_text_length
+          - preprocessing.min_token_length
+          - preprocessing.stopwords_lang
+    outs:
+      - data/processed/cleaned_reviews.csv
+
+  train:
+    cmd: python src/train.py
+    deps:
+      - src/train.py
+      - data/processed/cleaned_reviews.csv
+    params:
+      - params.yaml:
+          - data.test_size
+          - data.val_size
+          - data.random_state
+          - tfidf
+          - logreg
+          - naive_bayes
+          - mlflow.experiment_name
+          - mlflow.tracking_uri
+    outs:
+      - results/models/best_model.pkl
+      - results/models/history.json
+    metrics:
+      - results/metrics/train_metrics.json:
+          cache: false
+
+  evaluate:
+    cmd: python src/evaluate.py
+    deps:
+      - src/evaluate.py
+      - results/models/best_model.pkl
+      - data/processed/cleaned_reviews.csv
+    params:
+      - params.yaml:
+          - data.test_size
+          - data.val_size
+          - data.random_state
+          - bm25
+    outs:
+      - results/plots/confusion_matrix.png
+      - results/plots/bm25_metrics.png
+      - results/plots/pr_curves.png
+    metrics:
+      - results/metrics/eval_metrics.json:
+          cache: false
+
+  monitor:
+    cmd: python src/monitor.py
+    deps:
+      - src/monitor.py
+      - data/processed/cleaned_reviews.csv
+    params:
+      - params.yaml:
+          - monitor
+    outs:
+      - reports/drift/drift_report.html:
+          cache: false

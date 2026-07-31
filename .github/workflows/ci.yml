@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+
+  lint:
+    name: Lint with ruff
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - run: pip install ruff==0.6.3
+      - run: ruff check src/ tests/
+
+  test:
+    name: Run pytest
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - run: pip install -r requirements.txt
+      - name: Download NLTK data
+        run: python -c "import nltk; [nltk.download(r) for r in ['punkt','punkt_tab','stopwords','wordnet','averaged_perceptron_tagger']]"
+      - name: Create dummy model
+        run: |
+          python - <<'PY'
+          import pickle, os
+          from sklearn.feature_extraction.text import TfidfVectorizer
+          from sklearn.linear_model import LogisticRegression
+          os.makedirs('results/models', exist_ok=True)
+          vec = TfidfVectorizer(max_features=100)
+          texts = ['great food love it', 'terrible awful bad']
+          labels = ['positive', 'negative']
+          clf = LogisticRegression().fit(vec.fit_transform(texts), labels)
+          pickle.dump({'model':clf,'vectorizer':vec,'model_name':'CI-dummy','val_f1':0.0,'val_acc':0.0},
+                      open('results/models/best_model.pkl','wb'))
+          PY
+      - run: pytest tests/test_api.py -v --tb=short
+
+  docker-build:
+    name: Docker build + smoke test
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create dummy model
+        run: |
+          python - <<'PY'
+          import pickle, os
+          from sklearn.feature_extraction.text import TfidfVectorizer
+          from sklearn.linear_model import LogisticRegression
+          os.makedirs('results/models', exist_ok=True)
+          vec = TfidfVectorizer(max_features=100)
+          clf = LogisticRegression().fit(vec.fit_transform(['great','bad']),['positive','negative'])
+          pickle.dump({'model':clf,'vectorizer':vec,'model_name':'CI-dummy','val_f1':0.0,'val_acc':0.0},
+                      open('results/models/best_model.pkl','wb'))
+          PY
+      - run: docker build -t amazon-nlp-api:ci .
+      - name: Smoke test /health
+        run: |
+          docker run -d --name ci_api \
+            -v $(pwd)/results/models:/app/results/models:ro \
+            -p 8000:8000 amazon-nlp-api:ci
+          sleep 15
+          curl --retry 5 --retry-delay 3 -f http://localhost:8000/health
+          docker stop ci_api
