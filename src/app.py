@@ -10,6 +10,7 @@ Docs:          http://localhost:5001/docs  or  http://localhost:8000/docs
 import csv
 import pickle
 import re
+from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -33,27 +34,14 @@ from nltk.tokenize import word_tokenize
 from nltk import pos_tag
 
 # Load config from params.yaml only
-PARAMS    = yaml.safe_load(open('params.yaml'))
-API_CFG   = PARAMS['api']
-MON_CFG   = PARAMS['monitor']
-PRE       = PARAMS['preprocessing']
-LOG_PATH  = Path(MON_CFG['current_data_path'])
+PARAMS   = yaml.safe_load(open('params.yaml'))
+API_CFG  = PARAMS['api']
+MON_CFG  = PARAMS['monitor']
+PRE      = PARAMS['preprocessing']
+LOG_PATH = Path(MON_CFG['current_data_path'])
 
 STOP_WORDS = set(stopwords.words(PARAMS['preprocessing']['stopwords_lang']))
 LEMMATIZER = WordNetLemmatizer()
-
-app = FastAPI(
-    title="Amazon Reviews Sentiment API",
-    description="MAI203 NLP project - sentiment analysis on food product reviews.",
-    version="1.0.0"
-)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 # Module-level model state - loaded once at startup
 _MODEL      = None
@@ -83,9 +71,8 @@ def preprocess(text: str) -> str:
     return ' '.join([LEMMATIZER.lemmatize(w, get_wordnet_pos(t)) for w, t in tagged])
 
 
-# ── Startup ──────────────────────────────────────────────────────────────────
+# ── Model loader ─────────────────────────────────────────────────────────────
 
-@app.on_event("startup")
 def load_model():
     global _MODEL, _VECTORIZER, _MODEL_NAME
     model_path = Path(API_CFG['model_path'])
@@ -100,6 +87,28 @@ def load_model():
     _MODEL_NAME = checkpoint.get('model_name', 'Unknown')
     LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     print(f"Model loaded: {_MODEL_NAME}")
+
+
+# ── Lifespan (replaces deprecated on_event) ──────────────────────────────────
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    load_model()
+    yield
+
+app = FastAPI(
+    title="Amazon Reviews Sentiment API",
+    description="MAI203 NLP project - sentiment analysis on food product reviews.",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # ── Schemas ──────────────────────────────────────────────────────────────────
@@ -154,7 +163,6 @@ def predict(body: PredictRequest):
         all_scores = {c: round(float(p), 4) for c, p in zip(cls_names, proba)}
         confidence = round(float(max(proba)), 4)
 
-        # Log prediction for drift monitoring
         _log_prediction(body.text, label, confidence)
 
         return PredictResponse(

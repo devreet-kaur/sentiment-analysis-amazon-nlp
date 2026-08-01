@@ -6,10 +6,11 @@ Note: requires a trained model at results/models/best_model.pkl
 """
 import pytest
 from fastapi.testclient import TestClient
+
 from src.app import app, load_model
 
+# Load model once at module level for all tests
 load_model()
-
 client = TestClient(app)
 
 # ── Health endpoint ──────────────────────────────────────────────────────────
