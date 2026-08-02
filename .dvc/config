@@ -1,4 +1,6 @@
 [core]
-    remote = localremote
+    remote = dagshub
 ['remote "localremote"']
     url = /Users/devreetbatth/dvc-remote
+['remote "dagshub"']
+    url = https://dagshub.com/devreet-kaur/sentiment-analysis-amazon-nlp.dvc

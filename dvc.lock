@@ -1,0 +1,144 @@
+schema: '2.0'
+stages:
+  prepare:
+    cmd: python src/prepare.py
+    deps:
+    - path: data/raw/Reviews.csv
+      hash: md5
+      md5: c3c950ae0be8b0736477c89d052d33fd
+      size: 300904694
+    - path: src/prepare.py
+      hash: md5
+      md5: 6f3dd129b1c6d44ab82076884aa16a88
+      size: 3361
+    params:
+      params.yaml:
+        data.random_state: 42
+        data.sample_size: 50000
+        data.score_negative_max: 2
+        data.score_positive_min: 4
+        preprocessing.max_text_length: 512
+        preprocessing.min_token_length: 2
+        preprocessing.stopwords_lang: english
+    outs:
+    - path: data/processed/cleaned_reviews.csv
+      hash: md5
+      md5: bdb3857106000f88309eb2422522fced
+      size: 49514628
+  train:
+    cmd: python src/train.py
+    deps:
+    - path: data/processed/cleaned_reviews.csv
+      hash: md5
+      md5: bdb3857106000f88309eb2422522fced
+      size: 49514628
+    - path: src/train.py
+      hash: md5
+      md5: 58ad2e3ed42f3ae81065a5de9547200b
+      size: 6402
+    params:
+      params.yaml:
+        data.random_state: 42
+        data.test_size: 0.2
+        data.val_size: 0.15
+        logreg:
+          class_weight: balanced
+          max_iter: 1000
+          solver: lbfgs
+          C: 1.0
+          C_grid:
+          - 0.1
+          - 1
+          - 10
+          cv_folds: 3
+          random_state: 42
+        mlflow.experiment_name: amazon-reviews-nlp
+        mlflow.tracking_uri: mlruns
+        naive_bayes:
+          alpha: 1.0
+        tfidf:
+          max_features: 20000
+          ngram_min: 1
+          ngram_max: 2
+          min_df: 3
+          sublinear_tf: true
+    outs:
+    - path: results/metrics/train_metrics.json
+      hash: md5
+      md5: 131e533ea6f5d21e48f148024b067637
+      size: 53
+    - path: results/models/best_model.pkl
+      hash: md5
+      md5: 43f014bd83797ccf017cdeffd44fb678
+      size: 951749
+    - path: results/models/history.json
+      hash: md5
+      md5: c62f0f33e46244094e632dd1f0c16f88
+      size: 199
+  evaluate:
+    cmd: python src/evaluate.py
+    deps:
+    - path: data/processed/cleaned_reviews.csv
+      hash: md5
+      md5: bdb3857106000f88309eb2422522fced
+      size: 49514628
+    - path: results/models/best_model.pkl
+      hash: md5
+      md5: 43f014bd83797ccf017cdeffd44fb678
+      size: 951749
+    - path: src/evaluate.py
+      hash: md5
+      md5: 94f523bce2507fa636b1c0f91ac6a004
+      size: 8562
+    params:
+      params.yaml:
+        bm25:
+          k1: 1.5
+          b: 0.75
+          eval_k_values:
+          - 5
+          - 10
+          num_eval_queries: 10
+        data.random_state: 42
+        data.test_size: 0.2
+        data.val_size: 0.15
+    outs:
+    - path: results/metrics/eval_metrics.json
+      hash: md5
+      md5: 5784736a1cd589bff56acfb703add4e9
+      size: 226
+    - path: results/plots/bm25_metrics.png
+      hash: md5
+      md5: b766bc067e413a4c75f1ebcfbc6d008c
+      size: 29079
+    - path: results/plots/confusion_matrix.png
+      hash: md5
+      md5: 825517e64f77a159be574a4af3e5ab49
+      size: 31581
+    - path: results/plots/pr_curves.png
+      hash: md5
+      md5: b0f9fb43b2575fd762cca2ae736b7031
+      size: 51518
+  monitor:
+    cmd: python src/monitor.py
+    deps:
+    - path: data/processed/cleaned_reviews.csv
+      hash: md5
+      md5: bdb3857106000f88309eb2422522fced
+      size: 49514628
+    - path: src/monitor.py
+      hash: md5
+      md5: b236dbc3abad3b8f90b0c9210ac6ec8d
+      size: 3175
+    params:
+      params.yaml:
+        monitor:
+          reference_data_path: data/processed/cleaned_reviews.csv
+          current_data_path: logs/inference_log.csv
+          report_output_dir: reports/drift
+          drift_threshold: 0.15
+    outs:
+    - path: reports/drift/drift_report.html
+      hash: md5
+      md5: 53ea07c85e73e92f62f6bf9a2e1b67b2
+      size: 3685954
