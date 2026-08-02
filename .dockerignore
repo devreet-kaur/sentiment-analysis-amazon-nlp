@@ -1,0 +1,42 @@
+# .dockerignore - exclude everything not needed at runtime
+
+# Data files (never in Docker image)
+data/
+*.csv
+
+# Model files (mounted as volume at runtime)
+results/models/
+mlruns/
+logs/
+
+# Notebooks
+notebooks/
+
+# Tests (not needed at runtime)
+tests/
+
+# DVC files
+.dvc/
+*.dvc
+dvc.lock
+
+# Git
+.git/
+.gitignore
+
+# Environment
+.env
+.venv
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Reports
+reports/
+
+# IDE
+.vscode/
+.idea/

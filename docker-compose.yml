@@ -1,0 +1,36 @@
+# docker-compose.yml - MAI203 Amazon Fine Food Reviews NLP Pipeline
+#
+# Devreet (macOS):  docker compose up   -> http://localhost:5001
+# Arushi (Windows): docker compose up   -> http://localhost:8000
+#
+# macOS uses port 5001 because port 5000 is blocked by AirPlay Receiver.
+# Switch the ports block below based on your OS before running.
+
+version: "3.9"
+
+services:
+  api:
+    build: .
+    volumes:
+      - ./results/models:/app/results/models:ro
+      - ./logs:/app/logs
+      - ./params.yaml:/app/params.yaml:ro
+
+    environment:
+      - PYTHONUNBUFFERED=1
+
+    # macOS (Devreet): uncomment the line below, comment out the Windows line
+    ports:
+      - "5001:8000"
+    # Windows (Arushi): uncomment the line below, comment out the macOS line
+    # ports:
+    #   - "8000:8000"
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+    restart: unless-stopped

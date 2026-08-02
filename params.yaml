@@ -1,0 +1,71 @@
+# params.yaml - MAI203 Amazon Fine Food Reviews NLP Pipeline
+# All hyperparameters live here. Never hardcode values in .py files.
+# Load with: import yaml; params = yaml.safe_load(open('params.yaml'))
+
+data:
+  raw_csv: data/raw/Reviews.csv
+  cleaned_csv: data/processed/cleaned_reviews.csv
+  sample_size: 50000
+  random_state: 42
+  test_size: 0.20
+  val_size: 0.15
+  min_review_length: 2       # drop reviews shorter than N words after cleaning
+  score_positive_min: 4      # Score >= this maps to positive
+  score_negative_max: 2      # Score <= this maps to negative
+  # Score == 3 is dropped as ambiguous in Part B; kept as neutral in Part C
+
+preprocessing:
+  max_text_length: 512       # truncate at this many characters before tokenizing
+  min_token_length: 2        # drop tokens shorter than N characters
+  stopwords_lang: english
+
+tfidf:
+  max_features: 20000
+  ngram_min: 1
+  ngram_max: 2
+  min_df: 3
+  sublinear_tf: true
+
+bow:
+  max_features: 15000
+  min_df: 3
+
+logreg:
+  class_weight: balanced
+  max_iter: 1000
+  solver: lbfgs
+  C: 1.0                     # updated by grid search in train.py
+  C_grid: [0.1, 1, 10]
+  cv_folds: 3
+  random_state: 42
+
+naive_bayes:
+  alpha: 1.0                 # Laplace smoothing
+
+distilbert:
+  model_name: distilbert-base-uncased-finetuned-sst-2-english
+  inference_sample_size: 2000
+  max_length: 512
+  truncation: true
+  device: cpu
+
+bm25:
+  k1: 1.5
+  b: 0.75
+  eval_k_values: [5, 10]    # k for Precision@k and nDCG@k
+  num_eval_queries: 10
+
+mlflow:
+  experiment_name: amazon-reviews-nlp
+  tracking_uri: mlruns        # local by default
+
+api:
+  model_path: results/models/best_model.pkl
+  host: 0.0.0.0
+  port: 8000
+
+monitor:
+  reference_data_path: data/processed/cleaned_reviews.csv
+  current_data_path: logs/inference_log.csv
+  report_output_dir: reports/drift
+  drift_threshold: 0.15
