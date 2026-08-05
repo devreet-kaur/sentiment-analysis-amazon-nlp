@@ -60,37 +60,38 @@ All hyperparameters are stored in params.yaml. Key values:
 | tfidf.ngram_range | (1, 2) |
 | tfidf.min_df | 3 |
 | tfidf.sublinear_tf | true |
-| logreg.C | [fill after grid search] |
+| logreg.C | 10 (selected by GridSearchCV) |
 | logreg.class_weight | balanced |
 | logreg.max_iter | 1,000 |
 | logreg.solver | lbfgs |
 
 ## Evaluation Metrics
 
-### Sentiment Classifier (Part B)
+### Sentiment Classifier (Part B — Binary Classification)
 
 | Model | Accuracy | Macro-F1 | Notes |
 |-------|----------|----------|-------|
-| VADER (lexicon) | [fill] | [fill] | Lexicon baseline, no training |
-| LogReg + TF-IDF | [fill] | [fill] | Primary model |
-| DistilBERT (pretrained) | [fill] | [fill] | SST-2 fine-tuned, 2k sample |
+| VADER (lexicon) | 0.8771 | 0.7197 | Lexicon baseline, no training |
+| LogReg + TF-IDF | 0.9083 | 0.8353 | Primary model, Best C=10 |
+| DistilBERT (pretrained) | 0.7580 | 0.6832 | SST-2 fine-tuned, 2k sample |
 
-### Text Classifier (Part C - 3 classes)
+### Text Classifier (Part C — 3-Class Classification)
 
-| Model | Accuracy | Macro-F1 |
-|-------|----------|----------|
-| Naive Bayes + BoW | [fill] | [fill] |
-| LogReg + TF-IDF | [fill] | [fill] |
+| Model | Accuracy | Macro-F1 | Negative F1 | Neutral F1 | Positive F1 |
+|-------|----------|----------|-------------|------------|-------------|
+| Naive Bayes + BoW | 0.8163 | 0.5854 | 0.60 | 0.25 | 0.90 |
+| LogReg + TF-IDF | 0.7954 | 0.6232 | 0.63 | 0.34 | 0.90 |
 
 ### BM25 Retrieval (Part D)
 
-| Metric | Value |
-|--------|-------|
-| MAP | [fill] |
-| MRR | [fill] |
-| P@5 | [fill] |
-| P@10 | [fill] |
-| nDCG@5 | [fill] |
+| Metric | Value | Interpretation |
+|--------|-------|----------------|
+| MAP | 0.8564 | Average precision across all 10 queries |
+| MRR | 1.0000 | Relevant doc always ranked first |
+| P@5 | 0.7800 | 78% of top-5 results are relevant |
+| P@10 | 0.6600 | 66% of top-10 results are relevant |
+| Recall@10 | 1.0000 | 100% of relevant docs found in top-10 |
+| nDCG@5 | 0.8314 | Ranking quality accounting for position |
 
 ## Limitations
 
@@ -104,8 +105,10 @@ All hyperparameters are stored in params.yaml. Key values:
 
 **Sarcasm:** Neither TF-IDF nor DistilBERT (pretrained on SST-2) reliably detects sarcasm in food reviews. "Oh great, another product that breaks in a week" would likely be predicted as positive.
 
+**Neutral class:** The 3-class model struggles with neutral (Score 3) reviews — F1 of 0.34. Neutral reviews lack distinctive vocabulary and overlap with both positive and negative language.
+
 ## Ethical Considerations
 
 Deploying a food review sentiment classifier at scale could be used to suppress negative reviews, selectively surface positive ones, or generate misleading product quality signals. Transparent disclosure of how search results and sentiment scores are computed is required for responsible use.
 
-User review data contains personal product preferences that may be sensitive. The Amazon Fine Food Reviews dataset is publicly available, but any system that collects new reviews should comply with applicable privacy regulations.
+User review data contains personal product preferences that may be sensitive. The Amazon Fine Food Reviews dataset is publicly available, but any system that collects new reviews should comply with applicable privacy regulations including GDPR and PIPEDA.
