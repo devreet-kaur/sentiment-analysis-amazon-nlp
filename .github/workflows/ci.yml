@@ -39,7 +39,7 @@ jobs:
           from sklearn.linear_model import LogisticRegression
           os.makedirs('results/models', exist_ok=True)
           vec = TfidfVectorizer(max_features=100)
-          texts = ['great food love it', 'terrible awful bad']
+          texts = ['great food love it amazing coffee', 'terrible awful bad']
           labels = ['positive', 'negative']
           clf = LogisticRegression().fit(vec.fit_transform(texts), labels)
           pickle.dump({'model':clf,'vectorizer':vec,'model_name':'CI-dummy','val_f1':0.0,'val_acc':0.0},
