@@ -11,10 +11,10 @@ from pathlib import Path
 import nltk
 import pandas as pd
 import yaml
+from nltk import pos_tag
 from nltk.corpus import stopwords, wordnet
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
-from nltk import pos_tag
 
 nltk.download('punkt',        quiet=True)
 nltk.download('punkt_tab',    quiet=True)
@@ -23,7 +23,8 @@ nltk.download('wordnet',      quiet=True)
 nltk.download('averaged_perceptron_tagger', quiet=True)
 
 # Load params from params.yaml only - never hardcode
-PARAMS = yaml.safe_load(open('params.yaml'))
+with open('params.yaml') as f:
+    PARAMS = yaml.safe_load(f)
 DATA   = PARAMS['data']
 PRE    = PARAMS['preprocessing']
 

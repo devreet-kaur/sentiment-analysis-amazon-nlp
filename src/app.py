@@ -11,9 +11,8 @@ import csv
 import pickle
 import re
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
 
 import nltk
 import uvicorn
@@ -28,13 +27,14 @@ nltk.download('stopwords',    quiet=True)
 nltk.download('wordnet',      quiet=True)
 nltk.download('averaged_perceptron_tagger', quiet=True)
 
+from nltk import pos_tag
 from nltk.corpus import stopwords, wordnet
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
-from nltk import pos_tag
 
 # Load config from params.yaml only
-PARAMS   = yaml.safe_load(open('params.yaml'))
+with open('params.yaml') as f:
+    PARAMS = yaml.safe_load(f)
 API_CFG  = PARAMS['api']
 MON_CFG  = PARAMS['monitor']
 PRE      = PARAMS['preprocessing']
@@ -115,13 +115,13 @@ app.add_middleware(
 
 class PredictRequest(BaseModel):
     text: str
-    review_id: Optional[str] = None
+    review_id: str | None = None
 
 class PredictResponse(BaseModel):
     label:      str
     confidence: float
     all_scores: dict
-    review_id:  Optional[str] = None
+    review_id:  str | None = None
 
 
 # ── Endpoints ────────────────────────────────────────────────────────────────
@@ -171,7 +171,7 @@ def predict(body: PredictRequest):
             all_scores=all_scores,
             review_id=body.review_id
         )
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 -- API boundary, must surface any prediction failure as HTTP 400
         raise HTTPException(status_code=400, detail=f"Prediction failed: {exc}")
 
 
@@ -182,7 +182,7 @@ def _log_prediction(text: str, label: str, confidence: float):
         writer = csv.writer(f_out)
         if is_new:
             writer.writerow(['timestamp', 'text_length', 'label', 'confidence'])
-        writer.writerow([datetime.utcnow().isoformat(), len(text), label, confidence])
+        writer.writerow([datetime.now(timezone.utc).isoformat(), len(text), label, confidence])
 
 
 if __name__ == '__main__':

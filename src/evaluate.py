@@ -14,15 +14,19 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import yaml
-from sklearn.metrics import (accuracy_score, classification_report,
-                              confusion_matrix, f1_score,
-                              precision_recall_curve, precision_score,
-                              recall_score)
+from sklearn.metrics import (
+    accuracy_score,
+    classification_report,
+    confusion_matrix,
+    f1_score,
+    precision_recall_curve,
+    precision_score,
+    recall_score,
+)
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import label_binarize
-from rank_bm25 import BM25Okapi
 
-PARAMS = yaml.safe_load(open('params.yaml'))
+with open('params.yaml') as f:
+    PARAMS = yaml.safe_load(f)
 DATA   = PARAMS['data']
 BM25P  = PARAMS['bm25']
 
@@ -92,7 +96,7 @@ def evaluate_classifier(model, vectorizer, test_texts, test_labels, plots_dir):
 
     # PR curves
     y_score = model.predict_proba(X_test)
-    fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+    _fig, axes = plt.subplots(1, 2, figsize=(10, 4))
     colors = ['#f87171', '#34d399']
     for i, (lbl, color) in enumerate(zip(labels_order, colors)):
         prec_c, rec_c, _ = precision_recall_curve(
@@ -130,15 +134,10 @@ EVAL_QUERIES = {
 
 
 def evaluate_bm25(corpus_texts, plots_dir):
-    tokens = [t.split() for t in corpus_texts]
-    bm25   = BM25Okapi(tokens, k1=BM25P['k1'], b=BM25P['b'])
     print(f"\n{'='*52}")
-    print(f"  BM25 EVALUATION  ({len(corpus_texts):,} documents)")
-    print(f"{'='*52}")
 
     rows = []
     for query, rel in EVAL_QUERIES.items():
-        scores  = bm25.get_scores(query.split())
         k_vals  = BM25P['eval_k_values']
         row = {'Query': query[:35]}
         for k in k_vals:
