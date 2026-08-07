@@ -27,6 +27,7 @@ nltk.download('punkt_tab',    quiet=True)
 nltk.download('stopwords',    quiet=True)
 nltk.download('wordnet',      quiet=True)
 nltk.download('averaged_perceptron_tagger', quiet=True)
+nltk.download('averaged_perceptron_tagger_eng', quiet=True)
 
 from nltk.corpus import stopwords, wordnet  # noqa: E402
 from nltk.stem import WordNetLemmatizer  # noqa: E402
