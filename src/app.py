@@ -28,10 +28,10 @@ nltk.download('stopwords',    quiet=True)
 nltk.download('wordnet',      quiet=True)
 nltk.download('averaged_perceptron_tagger', quiet=True)
 
-from nltk.corpus import stopwords, wordnet
-from nltk.stem import WordNetLemmatizer
-from nltk.tokenize import word_tokenize
-from nltk import pos_tag
+from nltk.corpus import stopwords, wordnet  # noqa: E402
+from nltk.stem import WordNetLemmatizer  # noqa: E402
+from nltk.tokenize import word_tokenize  # noqa: E402
+from nltk import pos_tag  # noqa: E402
 
 # Load config from params.yaml only
 PARAMS   = yaml.safe_load(open('params.yaml'))
@@ -52,10 +52,14 @@ _MODEL_NAME = "not loaded"
 # ── Preprocessing ────────────────────────────────────────────────────────────
 
 def get_wordnet_pos(tag: str):
-    if tag.startswith('J'): return wordnet.ADJ
-    if tag.startswith('V'): return wordnet.VERB
-    if tag.startswith('N'): return wordnet.NOUN
-    if tag.startswith('R'): return wordnet.ADV
+    if tag.startswith('J'):
+        return wordnet.ADJ
+    if tag.startswith('V'):
+        return wordnet.VERB
+    if tag.startswith('N'):
+        return wordnet.NOUN
+    if tag.startswith('R'):
+        return wordnet.ADV
     return wordnet.NOUN
 
 def preprocess(text: str) -> str:
@@ -187,3 +191,4 @@ def _log_prediction(text: str, label: str, confidence: float):
 
 if __name__ == '__main__':
     uvicorn.run("src.app:app", host=API_CFG['host'], port=API_CFG['port'], reload=True)
+
