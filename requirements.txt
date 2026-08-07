@@ -6,9 +6,9 @@ nltk==3.9.1
 vaderSentiment==3.3.2
 
 # Transformers (DistilBERT inference in Notebook B)
-transformers==4.44.2
-torch==2.4.0
-tokenizers==0.19.1
+transformers==5.14.1
+torch==2.13.0
+tokenizers==0.22.2
 
 # Information Retrieval
 rank_bm25==0.2.2
@@ -16,7 +16,7 @@ rank_bm25==0.2.2
 # Data and ML
 numpy==1.26.4
 pandas==2.2.2
-scikit-learn==1.5.1
+scikit-learn==1.7.2
 
 # Experiment Tracking
 mlflow==2.15.1
