@@ -10,17 +10,17 @@ from pathlib import Path
 
 import mlflow
 import mlflow.sklearn
-import numpy as np
 import pandas as pd
 import yaml
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, classification_report, f1_score
+from sklearn.metrics import accuracy_score, f1_score
 from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn.naive_bayes import MultinomialNB
 
 # Load params from params.yaml only
-PARAMS = yaml.safe_load(open('params.yaml'))
+with open('params.yaml') as f:
+    PARAMS = yaml.safe_load(f)
 DATA   = PARAMS['data']
 TFIDF  = PARAMS['tfidf']
 LOGREG = PARAMS['logreg']
@@ -117,12 +117,12 @@ def train():
 
     print("Loading data...")
     df = load_data()
-    X_train, X_val, X_test, y_train, y_val, y_test = split_data(df)
+    X_train, X_val, _X_test, y_train, y_val, _y_test = split_data(df)
 
     # Train Naive Bayes baseline
     print("\nTraining Naive Bayes baseline...")
     with mlflow.start_run(run_name='naive_bayes_baseline'):
-        nb_model, bow_vec, nb_f1, nb_acc = train_naive_bayes(X_train, y_train, X_val, y_val)
+        _nb_model, _bow_vec, nb_f1, nb_acc = train_naive_bayes(X_train, y_train, X_val, y_val)
         mlflow.log_params({'model': 'naive_bayes', 'alpha': NB['alpha'],
                            'max_features': PARAMS['bow']['max_features']})
         mlflow.log_metrics({'val_macro_f1': nb_f1, 'val_accuracy': nb_acc})
@@ -169,7 +169,7 @@ def train():
     print("\nTraining complete.")
     print(f"  Best model: {checkpoint['model_name']}")
     print(f"  Val Macro-F1: {lr_f1:.4f}")
-    print(f"  View MLflow UI: mlflow ui --port 5001  (macOS) / 8080  (Windows)")
+    print("  View MLflow UI: mlflow ui --port 5001  (macOS) / 8080  (Windows)")
 
 
 if __name__ == '__main__':

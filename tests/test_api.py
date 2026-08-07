@@ -4,7 +4,6 @@ Pytest test suite for the FastAPI sentiment prediction endpoint.
 Run: pytest tests/test_api.py -v
 Note: requires a trained model at results/models/best_model.pkl
 """
-import pytest
 from fastapi.testclient import TestClient
 
 from src.app import app, load_model
