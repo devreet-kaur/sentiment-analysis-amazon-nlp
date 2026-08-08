@@ -128,8 +128,8 @@ stages:
       size: 49514628
     - path: src/monitor.py
       hash: md5
-      md5: fad35bf5d004b90de4117461558cc518
-      size: 3191
+      md5: b236dbc3abad3b8f90b0c9210ac6ec8d
+      size: 3175
     params:
       params.yaml:
         monitor:
@@ -140,5 +140,5 @@ stages:
     outs:
     - path: reports/drift/drift_report.html
       hash: md5
-      md5: 118af9a0f4fd88b0b556a0abcbb8b04b
+      md5: 45d47e87fd95df4cfe22cc9a728a9e49
       size: 3685247

@@ -10,12 +10,11 @@ from pathlib import Path
 
 import pandas as pd
 import yaml
-from evidently.legacy.metric_preset import DataDriftPreset
 from evidently.legacy.pipeline.column_mapping import ColumnMapping
+from evidently.legacy.metric_preset import DataDriftPreset
 from evidently.legacy.report import Report
 
-with open('params.yaml') as f:
-    PARAMS = yaml.safe_load(f)
+PARAMS  = yaml.safe_load(open('params.yaml'))
 MON_CFG = PARAMS['monitor']
 
 
