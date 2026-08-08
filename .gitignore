@@ -67,3 +67,6 @@ desktop.ini
 .idea/
 *.swp
 *.swo
+results/plots/
+results/metrics/
+reports/drift/
