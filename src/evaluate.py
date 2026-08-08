@@ -19,7 +19,6 @@ from sklearn.metrics import (accuracy_score, classification_report,
                               precision_recall_curve, precision_score,
                               recall_score)
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import label_binarize
 from rank_bm25 import BM25Okapi
 
 PARAMS = yaml.safe_load(open('params.yaml'))
@@ -43,15 +42,19 @@ def load_test_data():
 
 def precision_at_k(rel, k):  return sum(rel[:k]) / k
 def recall_at_k(rel, k):
-    total = sum(rel); return sum(rel[:k]) / total if total else 0.0
+    total = sum(rel)
+    return sum(rel[:k]) / total if total else 0.0
 def average_precision(rel):
     hits, precs = 0, []
     for i, r in enumerate(rel, 1):
-        if r: hits += 1; precs.append(hits / i)
+        if r:
+            hits += 1
+            precs.append(hits / i)
     return float(np.mean(precs)) if precs else 0.0
 def mrr(rel):
     for i, r in enumerate(rel, 1):
-        if r: return 1.0 / i
+        if r:
+            return 1.0 / i
     return 0.0
 def ndcg_at_k(rel, k):
     dcg  = sum(r / math.log2(i+1) for i, r in enumerate(rel[:k], 1))
@@ -85,7 +88,8 @@ def evaluate_classifier(model, vectorizer, test_texts, test_labels, plots_dir):
     sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
                 xticklabels=labels_order, yticklabels=labels_order)
     plt.title('Confusion Matrix - Test Set')
-    plt.ylabel('True'); plt.xlabel('Predicted')
+    plt.ylabel('True')
+    plt.xlabel('Predicted')
     plt.tight_layout()
     plt.savefig(plots_dir / 'confusion_matrix.png', dpi=150)
     plt.close()
@@ -131,14 +135,13 @@ EVAL_QUERIES = {
 
 def evaluate_bm25(corpus_texts, plots_dir):
     tokens = [t.split() for t in corpus_texts]
-    bm25   = BM25Okapi(tokens, k1=BM25P['k1'], b=BM25P['b'])
+    bm25   = BM25Okapi(tokens, k1=BM25P['k1'], b=BM25P['b'])  # noqa: F841
     print(f"\n{'='*52}")
     print(f"  BM25 EVALUATION  ({len(corpus_texts):,} documents)")
     print(f"{'='*52}")
 
     rows = []
     for query, rel in EVAL_QUERIES.items():
-        scores  = bm25.get_scores(query.split())
         k_vals  = BM25P['eval_k_values']
         row = {'Query': query[:35]}
         for k in k_vals:
@@ -211,3 +214,5 @@ def evaluate():
 
 if __name__ == '__main__':
     evaluate()
+
+

@@ -11,10 +11,10 @@ from pathlib import Path
 import nltk
 import pandas as pd
 import yaml
+from nltk import pos_tag
 from nltk.corpus import stopwords, wordnet
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
-from nltk import pos_tag
 
 nltk.download('punkt',        quiet=True)
 nltk.download('punkt_tab',    quiet=True)
@@ -23,7 +23,8 @@ nltk.download('wordnet',      quiet=True)
 nltk.download('averaged_perceptron_tagger', quiet=True)
 
 # Load params from params.yaml only - never hardcode
-PARAMS = yaml.safe_load(open('params.yaml'))
+with open('params.yaml') as f:
+    PARAMS = yaml.safe_load(f)
 DATA   = PARAMS['data']
 PRE    = PARAMS['preprocessing']
 
@@ -32,10 +33,14 @@ LEMMATIZER = WordNetLemmatizer()
 
 
 def get_wordnet_pos(tag: str):
-    if tag.startswith('J'): return wordnet.ADJ
-    if tag.startswith('V'): return wordnet.VERB
-    if tag.startswith('N'): return wordnet.NOUN
-    if tag.startswith('R'): return wordnet.ADV
+    if tag.startswith('J'):
+        return wordnet.ADJ
+    if tag.startswith('V'):
+        return wordnet.VERB
+    if tag.startswith('N'):
+        return wordnet.NOUN
+    if tag.startswith('R'):
+        return wordnet.ADV
     return wordnet.NOUN
 
 
@@ -57,14 +62,18 @@ def tokenize_lemmatize(text: str) -> str:
 
 
 def map_sentiment(score: int):
-    if score >= DATA['score_positive_min']: return 'positive'
-    if score <= DATA['score_negative_max']: return 'negative'
+    if score >= DATA['score_positive_min']:
+        return 'positive'
+    if score <= DATA['score_negative_max']:
+        return 'negative'
     return None
 
 
 def map_3class(score: int) -> str:
-    if score >= DATA['score_positive_min']: return 'positive'
-    if score <= DATA['score_negative_max']: return 'negative'
+    if score >= DATA['score_positive_min']:
+        return 'positive'
+    if score <= DATA['score_negative_max']:
+        return 'negative'
     return 'neutral'
 
 
@@ -104,3 +113,4 @@ def prepare():
 
 if __name__ == '__main__':
     prepare()
+
