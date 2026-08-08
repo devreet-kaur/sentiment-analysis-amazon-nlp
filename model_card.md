@@ -67,7 +67,7 @@ All hyperparameters are stored in params.yaml. Key values:
 
 ## Evaluation Metrics
 
-\*\*Note on metric selection:\*\* Macro-F1 is treated as the primary comparison metric across all classifiers due to the dataset's 5.5:1 class imbalance. Accuracy alone can overstate performance on the majority class.
+**Note on metric selection:** Macro-F1 is treated as the primary comparison metric across all classifiers due to the dataset's 5.5:1 class imbalance. Accuracy alone can overstate performance on the majority class.
 
 ### Sentiment Classifier (Part B — Binary Classification)
 
