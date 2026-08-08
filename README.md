@@ -10,7 +10,7 @@ End to end NLP pipeline: preprocessing, sentiment analysis, text classification,
 
 ## For the Grader: Fastest Path to a Working Demo
 
-This section exists so you can test the live API and read the notebooks without training anything yourself. If any step below fails, skip to the "If dvc pull fails" section further down, it gives a fallback that works with zero setup.
+This section exists so you can test the live API and read the notebooks without training anything yourself.
 
 ```bash
 git clone https://github.com/devreet-kaur/sentiment-analysis-amazon-nlp.git
@@ -18,10 +18,18 @@ cd sentiment-analysis-amazon-nlp
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+```
+
+Our DagsHub remote requires a read-only access token to pull the trained model, cleaned data, and plots (a public repo grants anonymous git/browse access, but not anonymous DVC access). This token is included with our Blackboard submission. Configure it once:
+
+```bash
+dvc remote modify dagshub --local auth basic
+dvc remote modify dagshub --local user devreet-kaur
+dvc remote modify dagshub --local password <TOKEN_FROM_SUBMISSION>
 dvc pull
 ```
 
-`dvc pull` downloads the trained model, the cleaned dataset, and all evaluation plots from our DagsHub remote, without needing a Kaggle account or retraining anything. If this succeeds, `results/models/best_model.pkl` will exist and the API below will work immediately.
+If this succeeds, `results/models/best_model.pkl` will exist and the API below will work immediately.
 
 Then start the API:
 ```bash
@@ -31,16 +39,14 @@ uvicorn src.app:app --reload --port 5001
 Open a second terminal and test it:
 ```bash
 curl http://localhost:5001/health
-curl -X POST http://localhost:5001/predict -H "Content-Type: application/json" -d '{"text": "This coffee is amazing!"}'
+curl -X POST http://localhost:5001/predict -H "Content-Type: application/json" -d '{"text": "This coffee is absolutely amazing!"}'
 ```
 
 Or open `http://localhost:5001/docs` in a browser for an interactive Swagger UI, no curl needed.
 
-### If `dvc pull` fails or asks for credentials
+### If the token doesn't work or you don't have it
 
-Our DagsHub remote may require authentication depending on how it is configured. If `dvc pull` fails:
-
-1. Email us and we will grant read access, or
+1. Email us and we will help directly, or
 2. Run the full pipeline from raw data instead (takes 5 to 10 minutes):
    ```bash
    # Download Reviews.csv from https://www.kaggle.com/datasets/snap/amazon-fine-food-reviews
@@ -75,8 +81,17 @@ dvc repro prepare      # single stage
 dvc repro train
 dvc repro evaluate
 dvc repro monitor
-dvc push               # push new artifacts to the DagsHub remote
+dvc push               # push new artifacts to the DagsHub remote (requires token, see above)
 dvc pull               # after every git pull, always run this
+```
+
+MLflow's file-based tracking backend requires an explicit opt-in on recent MLflow versions, so prefix the `train` stage with:
+```bash
+MLFLOW_ALLOW_FILE_STORE=true dvc repro train
+```
+or simply set it for the whole session:
+```bash
+export MLFLOW_ALLOW_FILE_STORE=true
 ```
 
 ---
@@ -129,6 +144,8 @@ docker compose up -d
 
 The API is available at `http://localhost:5001` by default. `docker-compose.yml` maps host port 5001 to the container's internal port 8000. If port 5001 is taken on your machine, edit the `ports` line in `docker-compose.yml` before running, no other changes needed on either macOS or Windows.
 
+**Requires `results/models/best_model.pkl` to already exist** (via `dvc pull` or `dvc repro train`) before starting the container, since it is mounted as a volume, not baked into the image.
+
 **Verify it's running:**
 ```bash
 curl http://localhost:5001/health
@@ -148,13 +165,13 @@ docker compose down
 pytest tests/test_api.py -v
 ```
 
-13 tests covering health, classes, and predict endpoints (valid inputs, missing fields, empty text, HTML in review text). All should pass once `results/models/best_model.pkl` exists (via `dvc pull` or `dvc repro train`).
+13 tests covering health, classes, and predict endpoints (valid inputs, missing fields, empty text, HTML in review text). All should pass once `results/models/best_model.pkl` exists.
 
 ---
 
 ## Model Monitoring (Evidently Drift Detection)
 
-Our pipeline tracks whether live prediction traffic starts looking different from the training data, using Evidently.
+Our pipeline tracks whether live prediction traffic starts looking different from the training data, using Evidently 0.7.21 (legacy import paths, `evidently.legacy.*`).
 
 **To generate drift data, make some API calls first:**
 ```bash
@@ -169,7 +186,7 @@ Each call appends a row to `logs/inference_log.csv`. You need at least 10 rows b
 
 **Then run the monitor stage:**
 ```bash
-dvc repro monitor
+MLFLOW_ALLOW_FILE_STORE=true dvc repro monitor
 ```
 
 **Open the generated report:**
@@ -178,7 +195,7 @@ open reports/drift/drift_report.html        # macOS
 start reports/drift/drift_report.html       # Windows
 ```
 
-The report compares the distribution of review length and predicted label between training data and live traffic, flagging drift if it exceeds the threshold set in `params.yaml` (`monitor.drift_threshold`, default 0.15).
+The report compares the distribution of review length and predicted label between training data and live traffic, flagging drift if it exceeds the threshold set in `params.yaml` (`monitor.drift_threshold`, default 0.15). Synthetic or repetitive test text (like the loop above) will show high drift by design, that confirms the detector is working correctly, not that anything is broken.
 
 ---
 
