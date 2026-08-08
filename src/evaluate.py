@@ -25,7 +25,6 @@ from sklearn.metrics import (
     recall_score,
 )
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import label_binarize
 
 with open('params.yaml') as f:
     PARAMS = yaml.safe_load(f)
@@ -108,12 +107,13 @@ def evaluate_classifier(model, vectorizer, test_texts, test_labels, plots_dir):
 
     # PR curves
     y_score = model.predict_proba(X_test)
-    labels_bin = sorted(set(test_labels))
-    y_bin = label_binarize(test_labels, classes=labels_bin)
     _fig, axes = plt.subplots(1, 2, figsize=(10, 4))
     colors = ['#f87171', '#34d399']
-    for i, (lbl, color) in enumerate(zip(labels_bin, colors)):
-        prec_c, rec_c, _ = precision_recall_curve(y_bin[:, i], y_score[:, i])
+    for i, (lbl, color) in enumerate(zip(labels_order, colors)):
+        prec_c, rec_c, _ = precision_recall_curve(
+            [1 if t == lbl else 0 for t in test_labels],
+            y_score[:, i]
+        )
         axes[i].plot(rec_c, prec_c, color=color, lw=2)
         axes[i].set_title(f'PR Curve: {lbl}')
         axes[i].set_xlabel('Recall')
