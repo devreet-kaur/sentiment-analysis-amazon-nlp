@@ -14,14 +14,21 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import yaml
-from sklearn.metrics import (accuracy_score, classification_report,
-                              confusion_matrix, f1_score,
-                              precision_recall_curve, precision_score,
-                              recall_score)
-from sklearn.model_selection import train_test_split
 from rank_bm25 import BM25Okapi
+from sklearn.metrics import (
+    accuracy_score,
+    classification_report,
+    confusion_matrix,
+    f1_score,
+    precision_recall_curve,
+    precision_score,
+    recall_score,
+)
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import label_binarize
 
-PARAMS = yaml.safe_load(open('params.yaml'))
+with open('params.yaml') as f:
+    PARAMS = yaml.safe_load(f)
 DATA   = PARAMS['data']
 BM25P  = PARAMS['bm25']
 
@@ -40,10 +47,13 @@ def load_test_data():
 
 # ── IR metric helpers ───────────────────────────────────────────────────────
 
-def precision_at_k(rel, k):  return sum(rel[:k]) / k
+def precision_at_k(rel, k):
+    return sum(rel[:k]) / k
+
 def recall_at_k(rel, k):
     total = sum(rel)
     return sum(rel[:k]) / total if total else 0.0
+
 def average_precision(rel):
     hits, precs = 0, []
     for i, r in enumerate(rel, 1):
@@ -51,11 +61,13 @@ def average_precision(rel):
             hits += 1
             precs.append(hits / i)
     return float(np.mean(precs)) if precs else 0.0
+
 def mrr(rel):
     for i, r in enumerate(rel, 1):
         if r:
             return 1.0 / i
     return 0.0
+
 def ndcg_at_k(rel, k):
     dcg  = sum(r / math.log2(i+1) for i, r in enumerate(rel[:k], 1))
     idcg = sum(r / math.log2(i+1) for i, r in enumerate(sorted(rel, reverse=True)[:k], 1))
@@ -81,7 +93,7 @@ def evaluate_classifier(model, vectorizer, test_texts, test_labels, plots_dir):
     print(f"  Recall     : {rec:.4f}")
     print("\n" + classification_report(test_labels, y_pred, zero_division=0))
 
-# Confusion matrix
+    # Confusion matrix
     labels_order = sorted(set(test_labels))
     cm = confusion_matrix(test_labels, y_pred, labels=labels_order)
     plt.figure(figsize=(6, 5))
@@ -96,13 +108,12 @@ def evaluate_classifier(model, vectorizer, test_texts, test_labels, plots_dir):
 
     # PR curves
     y_score = model.predict_proba(X_test)
-    fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+    labels_bin = sorted(set(test_labels))
+    y_bin = label_binarize(test_labels, classes=labels_bin)
+    _fig, axes = plt.subplots(1, 2, figsize=(10, 4))
     colors = ['#f87171', '#34d399']
-    for i, (lbl, color) in enumerate(zip(labels_order, colors)):
-        prec_c, rec_c, _ = precision_recall_curve(
-            [1 if t == lbl else 0 for t in test_labels],
-            y_score[:, i]
-        )
+    for i, (lbl, color) in enumerate(zip(labels_bin, colors)):
+        prec_c, rec_c, _ = precision_recall_curve(y_bin[:, i], y_score[:, i])
         axes[i].plot(rec_c, prec_c, color=color, lw=2)
         axes[i].set_title(f'PR Curve: {lbl}')
         axes[i].set_xlabel('Recall')
@@ -116,6 +127,7 @@ def evaluate_classifier(model, vectorizer, test_texts, test_labels, plots_dir):
 
     return {'accuracy': round(acc, 4), 'macro_f1': round(mf1, 4),
             'precision': round(prec, 4), 'recall': round(rec, 4)}
+
 
 # ── BM25 evaluation ─────────────────────────────────────────────────────────
 
@@ -214,5 +226,3 @@ def evaluate():
 
 if __name__ == '__main__':
     evaluate()
-
-

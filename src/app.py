@@ -10,10 +10,8 @@ Docs:          http://localhost:5001/docs  or  http://localhost:8000/docs
 import csv
 import pickle
 import re
-from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
 
 import nltk
 import uvicorn
@@ -29,20 +27,34 @@ nltk.download('wordnet',      quiet=True)
 nltk.download('averaged_perceptron_tagger', quiet=True)
 nltk.download('averaged_perceptron_tagger_eng', quiet=True)
 
+from nltk import pos_tag  # noqa: E402
 from nltk.corpus import stopwords, wordnet  # noqa: E402
 from nltk.stem import WordNetLemmatizer  # noqa: E402
 from nltk.tokenize import word_tokenize  # noqa: E402
-from nltk import pos_tag  # noqa: E402
 
 # Load config from params.yaml only
-PARAMS   = yaml.safe_load(open('params.yaml'))
-API_CFG  = PARAMS['api']
-MON_CFG  = PARAMS['monitor']
-PRE      = PARAMS['preprocessing']
-LOG_PATH = Path(MON_CFG['current_data_path'])
+with open('params.yaml') as f:
+    PARAMS = yaml.safe_load(f)
+API_CFG   = PARAMS['api']
+MON_CFG   = PARAMS['monitor']
+PRE       = PARAMS['preprocessing']
+LOG_PATH  = Path(MON_CFG['current_data_path'])
 
 STOP_WORDS = set(stopwords.words(PARAMS['preprocessing']['stopwords_lang']))
 LEMMATIZER = WordNetLemmatizer()
+
+app = FastAPI(
+    title="Amazon Reviews Sentiment API",
+    description="MAI203 NLP project - sentiment analysis on food product reviews.",
+    version="1.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Module-level model state - loaded once at startup
 _MODEL      = None
@@ -76,8 +88,9 @@ def preprocess(text: str) -> str:
     return ' '.join([LEMMATIZER.lemmatize(w, get_wordnet_pos(t)) for w, t in tagged])
 
 
-# ── Model loader ─────────────────────────────────────────────────────────────
+# ── Startup ──────────────────────────────────────────────────────────────────
 
+@app.on_event("startup")
 def load_model():
     global _MODEL, _VECTORIZER, _MODEL_NAME
     model_path = Path(API_CFG['model_path'])
@@ -94,39 +107,17 @@ def load_model():
     print(f"Model loaded: {_MODEL_NAME}")
 
 
-# ── Lifespan (replaces deprecated on_event) ──────────────────────────────────
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    load_model()
-    yield
-
-app = FastAPI(
-    title="Amazon Reviews Sentiment API",
-    description="MAI203 NLP project - sentiment analysis on food product reviews.",
-    version="1.0.0",
-    lifespan=lifespan
-)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
 # ── Schemas ──────────────────────────────────────────────────────────────────
 
 class PredictRequest(BaseModel):
     text: str
-    review_id: Optional[str] = None
+    review_id: str | None = None
 
 class PredictResponse(BaseModel):
     label:      str
     confidence: float
     all_scores: dict
-    review_id:  Optional[str] = None
+    review_id:  str | None = None
 
 
 # ── Endpoints ────────────────────────────────────────────────────────────────
@@ -168,6 +159,7 @@ def predict(body: PredictRequest):
         all_scores = {c: round(float(p), 4) for c, p in zip(cls_names, proba)}
         confidence = round(float(max(proba)), 4)
 
+        # Log prediction for drift monitoring
         _log_prediction(body.text, label, confidence)
 
         return PredictResponse(
@@ -176,7 +168,7 @@ def predict(body: PredictRequest):
             all_scores=all_scores,
             review_id=body.review_id
         )
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 -- API boundary, must surface any prediction failure as HTTP 400
         raise HTTPException(status_code=400, detail=f"Prediction failed: {exc}")
 
 
@@ -187,9 +179,8 @@ def _log_prediction(text: str, label: str, confidence: float):
         writer = csv.writer(f_out)
         if is_new:
             writer.writerow(['timestamp', 'text_length', 'label', 'confidence'])
-        writer.writerow([datetime.utcnow().isoformat(), len(text), label, confidence])
+        writer.writerow([datetime.now(timezone.utc).isoformat(), len(text), label, confidence])
 
 
 if __name__ == '__main__':
     uvicorn.run("src.app:app", host=API_CFG['host'], port=API_CFG['port'], reload=True)
-
