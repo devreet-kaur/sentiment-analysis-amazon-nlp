@@ -19,8 +19,7 @@ from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn.naive_bayes import MultinomialNB
 
 # Load params from params.yaml only
-with open('params.yaml') as f:
-    PARAMS = yaml.safe_load(f)
+PARAMS = yaml.safe_load(open('params.yaml'))
 DATA   = PARAMS['data']
 TFIDF  = PARAMS['tfidf']
 LOGREG = PARAMS['logreg']
@@ -117,12 +116,12 @@ def train():
 
     print("Loading data...")
     df = load_data()
-    X_train, X_val, _X_test, y_train, y_val, _y_test = split_data(df)
+    X_train, X_val, X_test, y_train, y_val, y_test = split_data(df)
 
     # Train Naive Bayes baseline
     print("\nTraining Naive Bayes baseline...")
     with mlflow.start_run(run_name='naive_bayes_baseline'):
-        _nb_model, _bow_vec, nb_f1, nb_acc = train_naive_bayes(X_train, y_train, X_val, y_val)
+        nb_model, bow_vec, nb_f1, nb_acc = train_naive_bayes(X_train, y_train, X_val, y_val)
         mlflow.log_params({'model': 'naive_bayes', 'alpha': NB['alpha'],
                            'max_features': PARAMS['bow']['max_features']})
         mlflow.log_metrics({'val_macro_f1': nb_f1, 'val_accuracy': nb_acc})
