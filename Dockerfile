@@ -20,6 +20,7 @@ RUN python -c "import nltk; nltk.download('punkt'); nltk.download('punkt_tab'); 
 # Copy source and config
 COPY src/ ./src/
 COPY params.yaml .
+COPY results/models/ ./results/models/
 
 # Expose API port
 EXPOSE 8000

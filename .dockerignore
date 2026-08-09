@@ -4,8 +4,7 @@
 data/
 *.csv
 
-# Model files (mounted as volume at runtime)
-results/models/
+# Model files now baked into image, no longer excluded
 mlruns/
 logs/
 
