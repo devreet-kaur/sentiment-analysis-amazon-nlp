@@ -157,6 +157,8 @@ docker compose logs -f api
 docker compose down
 ```
 
+**Known issue:** Docker Compose currently fails to load the model at container startup (`Model not found` despite the file existing in the image). Under investigation. The API works correctly without Docker via `uvicorn src.app:app`. See the "Live API" section above.
+
 ---
 
 ## Testing

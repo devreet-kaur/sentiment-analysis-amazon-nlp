@@ -12,9 +12,7 @@ services:
   api:
     build: .
     volumes:
-      - ./results/models:/app/results/models:ro
       - ./logs:/app/logs
-      - ./params.yaml:/app/params.yaml:ro
 
     environment:
       - PYTHONUNBUFFERED=1
